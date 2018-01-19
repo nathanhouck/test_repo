@@ -1,0 +1,109 @@
+#!/bin/bash
+
+
+# Script productes output file with GTM SERVERS/WIPS/POOLS status Report total counts at the top as well as object availability list that can be diff'd before and after an upgrade
+# Script works on both version 10 and version 11
+#You might have to hit y, then enter 15 times if more than 100 vips exists... 
+
+
+###  VARIABLES ###
+
+VERSION=$(tmsh show sys version | grep Version | egrep '11.|10.' | awk '{print $2}' | cut -d'.' -f1)
+PDIR=/shared/tmp/gtmobjects
+DATE=$(date)
+
+
+SRVOFF=$(tmsh show gtm server | egrep 'Gtm|Availability' | grep offline | wc -l)
+SRVUN=$(tmsh show gtm server | egrep 'Gtm|Availability' | grep unknown | wc -l)
+SRVAVA=$(tmsh show gtm server | egrep 'Gtm|Availability' | grep available | wc -l)
+WIPOFF=$(tmsh show gtm wideip | egrep 'Gtm|Availability' | grep offline | wc -l)
+WIPUN=$(tmsh show gtm wideip | egrep 'Gtm|Availability' | grep unknown | wc -l)
+WIPAVA=$(tmsh show gtm wideip | egrep 'Gtm|Availability' | grep available | wc -l)
+PLAVA=$(tmsh show gtm pool | egrep 'Pool:|Availability' | grep available | wc -l)
+PLOFF=$(tmsh show gtm pool | egrep 'Pool:|Availability' | grep offline | wc -l)
+PLUN=$(tmsh show gtm pool | egrep 'Pool:|Availability' | grep unknown | wc -l)
+
+
+
+function v10objectreport () {
+
+#SERVERS
+tmsh show gtm server | egrep 'Gtm|Availability' > $PDIR/srvrpt;
+sed '$!N;s/\n/ /' $PDIR/srvrpt >> $PDIR/srvstat.tmp;
+sed -i s/Gtm:://g $PDIR/srvstat.tmp;
+cat $PDIR/srvstat.tmp | awk '{print $1 , $2 , $5 , $6 , $7 }'  >> $PDIR/objects.report;
+echo "" >> $PDIR/objects.report;
+
+#WIPS
+tmsh show gtm wideip | egrep 'Gtm|Availability' > $PDIR/wiprpt;
+sed '$!N;s/\n/ /' $PDIR/wiprpt >> $PDIR/wipstat.tmp;
+sed -i s/Gtm:://g $PDIR/wipstat.tmp;
+cat $PDIR/wipstat.tmp | awk '{print $1 , $2 , $3 , $4 , $5 }' >> $PDIR/objects.report;
+echo "" >> $PDIR/objects.report;
+
+#POOLS
+tmsh show gtm pool | egrep 'Pool:|Availability' > $PDIR/plrpt;
+sed '$!N;s/\n/ /' $PDIR/plrpt >> $PDIR/poolstat.tmp;
+sed -i s/Gtm:://g $PDIR/poolstat.tmp;
+cat $PDIR/poolstat.tmp | awk '{print $1 , $2 , $3 , $4 , $5}'  >> $PDIR/objects.report;
+echo "" >> $PDIR/objects.report;
+}
+
+
+function v11objectreport () {
+
+#SERVERS
+tmsh show gtm server | egrep 'Gtm|Availability' > $PDIR/srvrpt;
+sed '$!N;s/\n/ /' $PDIR/srvrpt >> $PDIR/srvstat.tmp;
+sed -i s/Gtm:://g $PDIR/srvstat.tmp;
+cat $PDIR/srvstat.tmp | awk '{print $1 , $2 , $5 , $6 , $7 }'  >> $PDIR/objects.report;
+echo "" >> $PDIR/objects.report;
+
+#WIPS
+tmsh show gtm wideip | egrep 'Gtm|Availability' > $PDIR/wiprpt;
+sed '$!N;s/\n/ /' $PDIR/wiprpt >> $PDIR/wipstat.tmp;
+sed -i s/Gtm:://g $PDIR/wipstat.tmp;
+cat $PDIR/wipstat.tmp | awk '{print $1 , $2 , $3 , $4 , $5 }' >> $PDIR/objects.report;
+echo "" >> $PDIR/objects.report;
+
+#POOLS
+tmsh show gtm pool | egrep 'Pool:|Availability' > $PDIR/plrpt;
+sed '$!N;s/\n/ /' $PDIR/plrpt >> $PDIR/poolstat.tmp;
+sed -i s/Gtm:://g $PDIR/poolstat.tmp;
+cat $PDIR/poolstat.tmp | awk '{print $1 , $2 , $3 , $4 , $5}'  >> $PDIR/objects.report;
+echo "" >> $PDIR/objects.report;
+
+}
+
+### Action Section ###
+
+mkdir /shared/tmp/gtmobjects;
+
+echo "If script hangs cause you have alot of vips and pools, you might need to hit y , then enter twice....";
+echo "######   $HOSTNAME	- GTM_OBJECT_REPORT - $DATE   ######" > $PDIR/objects.report;
+echo "" >> $PDIR/objects.report;
+echo "SERVERS AVAILABLE: $SRVAVA" >> $PDIR/objects.report;
+echo "SERVERS OFFLINE: $SRVOFF" >> $PDIR/objects.report;
+echo "SERVERS UNAVAILABLE: $SRVUN" >> $PDIR/objects.report;
+echo "WIPS AVAILABLE: $WIPAVA" >> $PDIR/objects.report;
+echo "WIPS OFFLINE: $WIPOFF" >> $PDIR/objects.report;
+echo "WIPS UNAVAILABLE: $WIPUN" >> $PDIR/objects.report;
+echo "POOLS AVAILABLE: $PLAVA" >> $PDIR/objects.report;
+echo "POOLS OFFLINE: $PLOFF" >> $PDIR/objects.report;
+echo "POOLS UNAVAILABLE: $PLUN" >> $PDIR/objects.report;
+echo "" >> $PDIR/objects.report;
+
+    if  [ $VERSION -eq 10 ];
+	then
+	   v10objectreport
+    elif [ $VERSION -eq 11 ];
+	then
+	   v11objectreport
+    else  
+		echo "bad version" || exit 1
+	 fi  
+
+
+mv $PDIR/objects.report $HOSTNAME.object-report;
+
+rm -rf $PDIR;
