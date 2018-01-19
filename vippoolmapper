@@ -1,0 +1,51 @@
+#!/bin/bash
+
+
+DATE=$(date)
+echo "######   $HOSTNAME  - VIP-POOL-SSLPROFILE-REPORT - $DATE   ######";
+
+virtuallist=$(tmsh list ltm virtual | grep virtual | cut -d' ' -f3 | tr "\n" " " );
+# tmsh list ltm virtual | grep virtual | cut -d' ' -f3
+
+
+for v in $virtuallist ;
+do
+
+DEST="";
+POOL="";
+MEMB="";
+SSLPRO="";
+SSLPRODET="";
+
+DEST=$(tmsh list ltm virtual $v | grep destination | cut -d' ' -f6)
+SSLPRO=$(tmsh list ltm virtual $v | grep sslpro | cut -d' ' -f9)
+SSLPRODET=$(tmsh list ltm profile client-ssl $SSLPRO cert-key-chain | egrep 'chain |key|cer')
+#tmsh list ltm profile client-ssl sslpro-olsapp-pilot.ssl.bestbuy.com cert-key-chain | egrep 'ltm profile|chain |key|cert '
+
+POOL=$(tmsh list ltm virtual $v | grep pool | cut -d' ' -f6)
+MEMB=$(tmsh list ltm pool $POOL | egrep ':|address '| sed '$!N;s/\n/ /')
+MON=$(tmsh list ltm pool $POOL | grep "    monitor")
+#tmsh list ltm pool test_pool_ASUS_rtr | grep "    monitor"
+
+
+if [ "$POOL" != "" ];
+ then
+        echo "";
+        echo "";
+        echo " Virtual:  $v    DESTINATION: $DEST";
+                if [ "$SSLPRO" != "" ];
+                  then
+                    echo "  clientssl: $SSLPRO";
+                    echo "    SSL Details: $SSLPRODET";
+               fi
+
+        echo "  Pool: $POOL"       - $MON;
+        echo "$MEMB";
+else
+        echo "";
+        echo "!! Virtual $v $DEST has no pool assigned";
+#       echo "";
+
+fi
+done
+
