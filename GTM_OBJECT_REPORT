@@ -3,7 +3,7 @@
 
 # Script productes output file with GTM SERVERS/WIPS/POOLS status Report total counts at the top as well as object availability list that can be diff'd before and after an upgrade
 # Script works on both version 10 and version 11
-#You might have to hit y, then enter 15 times if more than 100 vips exists... 
+#You might have to hit y, then enter 15 times if more than 100 vips exists...  
 
 
 ###  VARIABLES ###
